@@ -349,6 +349,7 @@ const Settings = {
     el.querySelector('#gistToken').addEventListener('change', e=>{ Store.d.settings.gistToken = e.target.value.trim(); Store.save(); UI.toast('Token 已保存'); });
     el.querySelector('#autoSync').addEventListener('change', e=>{ Store.d.settings.autoSync = e.target.checked; Store.save(); UI.toast(e.target.checked?'已开启自动同步':'已关闭自动同步'); });
     el.querySelector('#syncNow').addEventListener('click', async ()=>{
+      Store.d.settings.gistToken = (el.querySelector('#gistToken').value || '').trim(); Store.save();
       const btn = el.querySelector('#syncNow'); btn.disabled = true; const old = btn.textContent; btn.textContent = '同步中…';
       try{
         const r = await Sync.sync();
@@ -359,10 +360,12 @@ const Settings = {
       finally { btn.disabled = false; btn.textContent = old; refreshStat(); }
     });
     el.querySelector('#syncUp').addEventListener('click', async ()=>{
+      Store.d.settings.gistToken = (el.querySelector('#gistToken').value || '').trim(); Store.save();
       try{ await Sync.upload(); Store.d.settings.lastSync = new Date().toISOString(); Store.save(); UI.toast('已上传到云端'); App.refresh(); }
       catch(err){ UI.toast('上传失败：' + (err.message||err)); }
     });
     el.querySelector('#syncDown').addEventListener('click', async ()=>{
+      Store.d.settings.gistToken = (el.querySelector('#gistToken').value || '').trim(); Store.save();
       try{
         const r = await Sync.download(); if(!r) throw new Error('云端没有数据');
         const lt = (Store.d.settings && Store.d.settings.gistToken) || '';

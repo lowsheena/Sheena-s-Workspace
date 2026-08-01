@@ -188,7 +188,7 @@ const Sync = {
     this._t = setTimeout(()=>{ this.upload().catch(()=>{}); }, 2500);
   },
 
-  /* 上传本机数据到云端（有 gistId 则更新，否则新建） */
+  /* 上传本机数据到云端（有 gistId 则更新，否则新建；旧 gist 绑定失效时自动清空重试） */
   async upload(){
     if(!this.token) throw new Error('未配置 GitHub Token');
     if(!this.gistId){ const f = await this.findGist(); if(f) this._setGist(f); }
@@ -196,10 +196,12 @@ const Sync = {
     let res;
     if(this.gistId){
       res = await fetch(this.API + '/' + this.gistId, { method:'PATCH', headers:this._headers(), body: JSON.stringify(this._body(content)) });
-    } else {
+      if(res.status === 401 || res.status === 403 || res.status === 404){ this._clearGist(); res = null; }
+    }
+    if(!this.gistId){
       res = await fetch(this.API, { method:'POST', headers:this._headers(), body: JSON.stringify(this._body(content)) });
     }
-    if(!res.ok) throw new Error('GitHub 返回 ' + res.status + (res.status===401 ? '（Token 无效：请确认电脑与手机填的是【同一个】token，且为 classic token 并已勾选 gist 权限、未被撤销）' : (res.status===403 ? '（频率限制，稍后再试）' : '')));
+    if(!res || !res.ok) throw new Error('GitHub 返回 ' + (res ? res.status : '?') + (res && res.status===401 ? '（Token 无效：请确认电脑与手机填的是【同一个】token，且为 classic token 并已勾选 gist 权限、未被撤销）' : (res && res.status===403 ? '（频率限制，稍后再试）' : '')));
     const data = await res.json();
     if(data && data.id) this._setGist(data.id);
     return data;
@@ -232,7 +234,7 @@ const Sync = {
   /* 合并同步：拉云端 + 本机合并（按 id 去重，取较新），再上传合并结果 */
   async sync(){
     const found = await this.findGist();
-    if(found) this._setGist(found);
+    if(found) this._setGist(found); else this._clearGist();
     let remote = null;
     try { remote = await this.download(); } catch(e){ /* 可能没有档案，稍后上传新建 */ }
     if(!remote){ await this.upload(); return { action:'uploaded' }; }
@@ -244,6 +246,7 @@ const Sync = {
   },
 
   _setGist(id){ Store.d.settings.gistId = id; Store.save(); },
+  _clearGist(){ Store.d.settings.gistId = ''; Store.save(); },
 
   /* 合并两份状态：数组按 id 并集（较新优先），对象浅合并（云端补缺、本机优先），保护同步凭据 */
   merge(local, remote){
