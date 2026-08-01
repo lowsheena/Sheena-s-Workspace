@@ -1,0 +1,17 @@
+{
+  "name": "追风 · 个人工作台",
+  "short_name": "追风",
+  "description": "记账（人民币/新币）、减肥、课表作业、工作待办、经期，一个页面全搞定",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f5fa",
+  "theme_color": "#f4f5fa",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

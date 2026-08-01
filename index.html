@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#f6f7fb" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="追风" />
+<meta name="format-detection" content="telephone=no" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<title>追风 · 个人工作台</title>
+  <link rel="stylesheet" href="css/style.css?v=9" />
+</head>
+<body>
+
+<!-- ============ 锁屏 ============ -->
+<div id="lockScreen" class="lock">
+  <div class="lock-bg"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+  <div class="lock-logo">廷</div>
+  <div class="lock-inner">
+    <div class="lock-top">
+      <div id="lockTime" class="lock-time">--:--</div>
+      <div id="lockDate" class="lock-date">—</div>
+    </div>
+    <div class="lock-mid">
+      <div class="lock-quote">
+        <span class="q-line">等风，</span>
+        <span class="q-line strong">不如去追风</span>
+      </div>
+      <div id="lockSub" class="lock-sub">—</div>
+    </div>
+    <div class="lock-bottom">
+      <button id="enterBtn" class="enter-btn">
+        <span>进入工作台</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div class="lock-hint">向上滑动或点击按钮</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 首次引导 ============ -->
+<div id="onboard" class="onboard hidden"></div>
+
+<!-- ============ 主应用 ============ -->
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">廷</div>
+      <div class="brand-text"><b>廷的工作台</b><i id="brandUser">我的一天</i></div>
+    </div>
+    <nav class="side-nav" id="sideNav"></nav>
+    <div class="side-foot">
+      <div class="side-quote">等风，不如去追风</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 id="pageTitle">首页</h1>
+        <span id="pageSub" class="page-sub"></span>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="settingsBtn" title="设置 / 备份">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 4.6V4a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.6 1.6 0 0 0 21 11h.1a2 2 0 1 1 0 4H21z"/></svg>
+        </button>
+        <button class="icon-btn" id="lockBtn" title="锁屏">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </button>
+      </div>
+    </header>
+    <div id="view" class="view"></div>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<!-- ============ 全局层 ============ -->
+<div id="modalRoot"></div>
+<div id="sheetRoot"></div>
+<div id="toastRoot" class="toast-root"></div>
+
+<script src="js/core.js?v=9"></script>
+<script src="js/charts.js?v=9"></script>
+<script src="js/dashboard.js?v=9"></script>
+<script src="js/finance.js?v=9"></script>
+<script src="js/health.js?v=9"></script>
+<script src="js/study.js?v=9"></script>
+<script src="js/work.js?v=9"></script>
+<script src="js/more.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
+</body>
+</html>
