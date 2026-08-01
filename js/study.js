@@ -494,7 +494,7 @@ const Study = {
                   ${Study.DAYS.map((_, di) => {
                     const key = (di+1)+'_'+slot.n;
                     const on = !!selected[key];
-                    return `<td data-cell="${key}" style="padding:0;border-bottom:1px solid var(--line-soft);cursor:pointer;text-align:center;vertical-align:middle">
+                    return `<td data-cell="${key}" class="${on?'on':''}" style="padding:0;border-bottom:1px solid var(--line-soft);cursor:pointer;text-align:center;vertical-align:middle">
                       <div style="width:100%;height:28px;${on?'background:'+editing.color+';border-radius:5px;':'background:transparent;'}transition:background .15s"
                         ${on?'title="'+editing.name+'"':''}></div>
                     </td>`;
@@ -546,22 +546,24 @@ const Study = {
         };
       },
       onSubmit(st, r){
-        // 从网格 DOM 读取选中的上课时间
-        const root = r || document;
-        const cells = root.querySelectorAll('#gridEditor [data-cell]');
-        const sel = {};
-        cells.forEach(td => {
-          const div = td.querySelector('div');
-          if(div && div.style.background && div.style.background !== 'transparent') sel[td.dataset.cell] = true;
-        });
-        const byDay = {};
-        Object.keys(sel).forEach(k => { const [d,s] = k.split('_').map(Number); if(!byDay[d]) byDay[d] = []; byDay[d].push(s); });
-        const finalSlots = [];
-        Object.keys(byDay).sort((a,b)=>a-b).forEach(d => {
-          const slts = byDay[d].sort((a,b)=>a-b);
-          const ti = Study.slotsToTime(slts);
-          finalSlots.push({ day:+d, start:ti.start, end:ti.end });
-        });
+        // 直接读取网格维护的选中状态（onMount 闭包维护，避免不同浏览器对 style.background
+        // 序列化差异（如透明背景会返回 rgba(0,0,0,0) 而非 'transparent'）导致误判选中）
+        let finalSlots = [];
+        if(r && typeof r._getSelectedSlots === 'function') finalSlots = r._getSelectedSlots();
+        // 兜底：_getSelectedSlots 不可用时，改读格子上的 .on class（renderGrid 已标记）
+        if(!finalSlots || !finalSlots.length){
+          const root = r || document;
+          const cells = root.querySelectorAll('#gridEditor [data-cell]');
+          const sel = {};
+          cells.forEach(td => { if(td.classList.contains('on')) sel[td.dataset.cell] = true; });
+          const byDay = {};
+          Object.keys(sel).forEach(k => { const [d,s] = k.split('_').map(Number); if(!byDay[d]) byDay[d] = []; byDay[d].push(s); });
+          Object.keys(byDay).sort((a,b)=>a-b).forEach(d => {
+            const slts = byDay[d].sort((a,b)=>a-b);
+            const ti = Study.slotsToTime(slts);
+            finalSlots.push({ day:+d, start:ti.start, end:ti.end });
+          });
+        }
         if(!finalSlots.length) finalSlots.push({ day:1, start:'09:00', end:'10:30' });
         const data = { name:st.name, teacher:st.teacher||'', room:st.room||'', color:st.color, note:st.note||'', slots:finalSlots };
         if(id) Store.update('courses', id, data); else Store.add('courses', data);
