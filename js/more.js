@@ -233,11 +233,41 @@ const Settings = {
         <div class="kv"><span>模型</span><b>${U.esc(s.geminiModel || 'gemini-2.0-flash')}</b></div>
       </div>
 
+      <div class="card" style="margin-bottom:14px;border:1px solid var(--brand)">
+        <div class="card-head"><h3>☁️ 云同步（手机电脑自动联通）</h3><span class="sub" id="syncStat">${s.gistId?'已连接':'未连接'}</span></div>
+        <p style="font-size:12.5px;color:var(--text-2);line-height:1.7;margin:0 0 10px">
+          用你自己的 GitHub 私有 Gist 当「云盘」，电脑和手机读写同一份数据，自动保持一致。
+          数据只存在你的 GitHub 账号里，不经过任何第三方服务器。
+        </p>
+        <div class="field" style="margin-bottom:8px">
+          <label>GitHub Token（仅 gist 权限）</label>
+          <input class="inp" id="gistToken" type="password" value="${s.gistToken||''}" placeholder="github_pat_..." autocomplete="off">
+        </div>
+        <details style="margin-bottom:10px">
+          <summary style="font-size:12.5px;color:var(--brand);cursor:pointer">怎么获取 Token？（只勾 gist 一项）</summary>
+          <div style="font-size:12.5px;color:var(--text-2);line-height:1.7;margin-top:6px">
+            ① 打开 <b>github.com/settings/tokens</b> → 点「Generate new token (classic)」<br>
+            ② 只勾选 <b>gist</b> 这一项（其它都不要勾，权限越小越安全）<br>
+            ③ 生成后复制 Token 粘贴到上面<br>
+            ⚠️ Token 只存在你本机浏览器，可随时到 GitHub 撤销。
+          </div>
+        </details>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn btn-primary btn-sm" id="syncNow">🔄 立即同步</button>
+          <button class="btn btn-ghost btn-sm" id="syncUp">⬆️ 仅上传</button>
+          <button class="btn btn-ghost btn-sm" id="syncDown">⬇️ 仅下载</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2)">
+          <input type="checkbox" id="autoSync" ${s.autoSync?'checked':''}> 自动同步（每次改动自动上传，进 App 时自动拉取）
+        </label>
+      </div>
+
       <div class="card" style="margin-bottom:14px">
-        <div class="card-head"><h3>数据备份 · 手机电脑同步</h3><span class="sub">${size} KB</span></div>
+        <div class="card-head"><h3>数据备份（备用）</h3><span class="sub">${size} KB</span></div>
         <p style="font-size:13px;color:var(--text-2);line-height:1.75;margin:0 0 14px">
           数据保存在你自己的设备里，不会上传。换设备或想让手机电脑保持一致时，
           在一台设备上「导出备份」，把文件传给另一台设备后「导入备份」即可。
+          （推荐优先用上面的云同步）
         </p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" id="expData">⬇️ 导出备份（含照片）</button>
@@ -309,6 +339,46 @@ const Settings = {
       };
       fr.readAsText(f);
     });
+    /* ---- 云同步 ---- */
+    const syncStat = el.querySelector('#syncStat');
+    const refreshStat = ()=>{
+      const ss = Store.d.settings;
+      const t = ss.lastSync ? ss.lastSync.replace('T',' ').slice(0,16) : '从未';
+      syncStat.textContent = ss.gistId ? ('已连接 · '+t) : '未连接';
+    };
+    el.querySelector('#gistToken').addEventListener('change', e=>{ Store.d.settings.gistToken = e.target.value.trim(); Store.save(); UI.toast('Token 已保存'); });
+    el.querySelector('#autoSync').addEventListener('change', e=>{ Store.d.settings.autoSync = e.target.checked; Store.save(); UI.toast(e.target.checked?'已开启自动同步':'已关闭自动同步'); });
+    el.querySelector('#syncNow').addEventListener('click', async ()=>{
+      const btn = el.querySelector('#syncNow'); btn.disabled = true; const old = btn.textContent; btn.textContent = '同步中…';
+      try{
+        const r = await Sync.sync();
+        Store.d.settings.lastSync = new Date().toISOString(); Store.save();
+        UI.toast(r.action==='merged' ? '同步成功（已合并双方数据）' : '已上传到云端');
+        App.refresh();
+      }catch(err){ UI.toast('同步失败：' + (err.message||err)); }
+      finally { btn.disabled = false; btn.textContent = old; refreshStat(); }
+    });
+    el.querySelector('#syncUp').addEventListener('click', async ()=>{
+      try{ await Sync.upload(); Store.d.settings.lastSync = new Date().toISOString(); Store.save(); UI.toast('已上传到云端'); App.refresh(); }
+      catch(err){ UI.toast('上传失败：' + (err.message||err)); }
+    });
+    el.querySelector('#syncDown').addEventListener('click', async ()=>{
+      try{
+        const r = await Sync.download(); if(!r) throw new Error('云端没有数据');
+        const lt = (Store.d.settings && Store.d.settings.gistToken) || '';
+        const lid = (Store.d.settings && Store.d.settings.gistId) || '';
+        UI.confirm('下载会覆盖本机数据，确定继续？', ()=>{
+          Store.d = r;
+          Store.d.settings = Store.d.settings || {};
+          Store.d.settings.gistToken = lt || Store.d.settings.gistToken;
+          Store.d.settings.gistId = lid || Store.d.settings.gistId;
+          Store.d.settings.lastSync = new Date().toISOString();
+          Store.save();
+          UI.toast('已下载'); setTimeout(()=>location.reload(), 600);
+        }, true);
+      }catch(err){ UI.toast('下载失败：' + (err.message||err)); }
+    });
+    refreshStat();
     el.querySelector('#reset').addEventListener('click', ()=>{
       UI.confirm('将删除所有记录且无法恢复，建议先导出备份。确定清空？', ()=>{
         localStorage.removeItem(Store.KEY);

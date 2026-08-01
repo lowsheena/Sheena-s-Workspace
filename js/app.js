@@ -28,6 +28,10 @@ const App = {
 
   init(){
     Store.load();
+    // 开启自动同步时，进入 App 先拉取云端（合并双方数据）
+    if(Sync.auto && Sync.token){
+      Sync.sync().then(()=>this.refresh()).catch(()=>{});
+    }
     this.buildNav();
     this.bindLock();
     this.clock();

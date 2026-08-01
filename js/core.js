@@ -134,7 +134,7 @@ const Photos = {
 const DEFAULT_STATE = {
   v: 2,
   profile: { onboarded:false, name:'', gender:'female', age:20, height:165, weight:60, startWeight:60, targetWeight:52, activity:1.375, pace:'standard', goalNote:'', createdAt:'' },
-  settings: { rate: 5.25, rateUpdated:'', defaultCurrency:'SGD', monthlyBudgetCNY: 3000, waterCup: 250, termStart:'', geminiKey:'', geminiModel:'gemini-2.0-flash' },
+  settings: { rate: 5.25, rateUpdated:'', defaultCurrency:'SGD', monthlyBudgetCNY: 3000, waterCup: 250, termStart:'', geminiKey:'', geminiModel:'gemini-2.0-flash', gistToken:'', gistId:'', autoSync:false, lastSync:'' },
   expenses: [], incomes: [], meals: [], water: [], workouts: [], weights: [],
   courses: [], tasks: [], works: [], cycles: [],
   accounts: [], savings: [], projects: [],
@@ -160,6 +160,7 @@ const Store = {
   save(){
     try{ localStorage.setItem(this.KEY, JSON.stringify(this.d)); }
     catch(e){ UI.toast('存储空间不足，建议清理旧照片'); }
+    if(typeof Sync !== 'undefined' && Sync.auto && Sync.token) Sync.schedulePush();
   },
   add(list, obj){ obj.id = obj.id || U.uid(); this.d[list].unshift(obj); this.save(); return obj; },
   update(list, id, patch){ const it = this.d[list].find(x=>x.id===id); if(it){ Object.assign(it, patch); this.save(); } return it; },
@@ -168,6 +169,95 @@ const Store = {
     if(i>-1){ const it = this.d[list][i]; if(it.photo) Photos.del(it.photo); this.d[list].splice(i,1); this.save(); }
   },
   get(list, id){ return this.d[list].find(x=>x.id===id); }
+};
+
+/* ---------------- 云同步（GitHub Gist 当私有云盘） ---------------- */
+const Sync = {
+  API: 'https://api.github.com/gists',
+  FILE: 'phub_state.json',
+  get token(){ return (Store.d.settings && Store.d.settings.gistToken) || ''; },
+  get gistId(){ return (Store.d.settings && Store.d.settings.gistId) || ''; },
+  get auto(){ return !!(Store.d.settings && Store.d.settings.autoSync); },
+  _t: null,
+  _headers(){ return { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }; },
+  _body(content){ return { description: '追风工作台云同步', public: false, files: { [this.FILE]: { content } } }; },
+
+  /* 改动后防抖上传（自动同步用） */
+  schedulePush(){
+    clearTimeout(this._t);
+    this._t = setTimeout(()=>{ this.upload().catch(()=>{}); }, 2500);
+  },
+
+  /* 上传本机数据到云端（有 gistId 则更新，否则新建） */
+  async upload(){
+    if(!this.token) throw new Error('未配置 GitHub Token');
+    const content = JSON.stringify(Store.d);
+    let res;
+    if(this.gistId){
+      res = await fetch(this.API + '/' + this.gistId, { method:'PATCH', headers:this._headers(), body: JSON.stringify(this._body(content)) });
+    } else {
+      res = await fetch(this.API, { method:'POST', headers:this._headers(), body: JSON.stringify(this._body(content)) });
+    }
+    if(!res.ok) throw new Error('GitHub 返回 ' + res.status + (res.status===401 ? '（Token 无效或无 gist 权限）' : (res.status===403 ? '（频率限制，稍后再试）' : '')));
+    const data = await res.json();
+    if(data && data.id) this._setGist(data.id);
+    return data;
+  },
+
+  /* 从云端拉取数据 */
+  async download(){
+    if(!this.token) throw new Error('未配置 GitHub Token');
+    if(!this.gistId) throw new Error('尚未创建同步档案，请先上传一次');
+    const res = await fetch(this.API + '/' + this.gistId, { headers:this._headers() });
+    if(!res.ok) throw new Error('GitHub 返回 ' + res.status);
+    const data = await res.json();
+    const f = data.files && data.files[this.FILE];
+    if(!f || !f.content) return null;
+    return JSON.parse(f.content);
+  },
+
+  /* 合并同步：拉云端 + 本机合并（按 id 去重，取较新），再上传合并结果 */
+  async sync(){
+    let remote = null;
+    try { remote = await this.download(); } catch(e){ /* 可能没有档案，稍后上传新建 */ }
+    if(!remote){ await this.upload(); return { action:'uploaded' }; }
+    const merged = this.merge(Store.d, remote);
+    Store.d = merged;
+    Store.save();
+    await this.upload();
+    return { action:'merged' };
+  },
+
+  _setGist(id){ Store.d.settings.gistId = id; Store.save(); },
+
+  /* 合并两份状态：数组按 id 并集（较新优先），对象浅合并（云端补缺、本机优先），保护同步凭据 */
+  merge(local, remote){
+    const out = JSON.parse(JSON.stringify(local));
+    for(const k in DEFAULT_STATE){
+      const def = DEFAULT_STATE[k];
+      if(Array.isArray(def)){
+        out[k] = this.unionById(local[k] || [], remote[k] || []);
+      } else if(def && typeof def === 'object'){
+        out[k] = Object.assign({}, remote[k] || {}, local[k] || {});
+      }
+    }
+    out.settings = out.settings || {};
+    out.settings.gistToken = (local.settings && local.settings.gistToken) || out.settings.gistToken;
+    out.settings.gistId = (local.settings && local.settings.gistId) || out.settings.gistId;
+    return out;
+  },
+  unionById(a, b){
+    const map = new Map();
+    const push = it => {
+      if(!it || it.id === undefined) return;
+      const prev = map.get(it.id);
+      if(!prev){ map.set(it.id, it); return; }
+      if(this.tsOf(it) > this.tsOf(prev)) map.set(it.id, it);
+    };
+    (a||[]).forEach(push); (b||[]).forEach(push);
+    return Array.from(map.values());
+  },
+  tsOf(o){ return U.num(o && o.ts) || U.num(o && o.updatedAt) || 0; }
 };
 
 /* ---------------- 健康计算 ---------------- */
