@@ -199,7 +199,7 @@ const Sync = {
     } else {
       res = await fetch(this.API, { method:'POST', headers:this._headers(), body: JSON.stringify(this._body(content)) });
     }
-    if(!res.ok) throw new Error('GitHub 返回 ' + res.status + (res.status===401 ? '（Token 无效或无 gist 权限）' : (res.status===403 ? '（频率限制，稍后再试）' : '')));
+    if(!res.ok) throw new Error('GitHub 返回 ' + res.status + (res.status===401 ? '（Token 无效：请确认电脑与手机填的是【同一个】token，且为 classic token 并已勾选 gist 权限、未被撤销）' : (res.status===403 ? '（频率限制，稍后再试）' : '')));
     const data = await res.json();
     if(data && data.id) this._setGist(data.id);
     return data;
