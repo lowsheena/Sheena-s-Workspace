@@ -5,53 +5,98 @@ const HealthPage = {
   title: '减肥',
   tab: 'today',
   MEALS: [ {k:'breakfast',l:'早餐',i:'🌅'}, {k:'lunch',l:'午餐',i:'☀️'}, {k:'dinner',l:'晚餐',i:'🌙'}, {k:'snack',l:'加餐',i:'🍪'} ],
-  /* 常见食物库：每 100g 的热量(kcal) + 别名(支持英文/拼音搜索) + 快速加入时的默认克数 g
-     数据为常见参考值，便于「输入食材名自动换算热量」 */
+  /* 食物库：每 100g 的热量(kcal) + 别名(支持中文/英文/拼音搜索) + 加入时的默认克数 g
+     同时收录「食材」与「整份菜品」，搜名字即可添加，参考薄荷健康的交互。
+     数据为常见参考估算值，供记录参考。 */
   FOOD_DB: [
+    /* ---- 主食 / 谷物 ---- */
     { n:'玉米', k:112, g:150, a:['corn','玉蜀黍','maize'] },
     { n:'白米饭', k:116, g:150, a:['米饭','rice'] },
     { n:'糙米饭', k:112, g:150, a:['糙米','brown rice'] },
     { n:'粥', k:46, g:200, a:['白粥','congee','porridge'] },
     { n:'馒头', k:223, g:80, a:['mantou'] },
+    { n:'面条(熟)', k:138, g:150, a:['面','noodle','miantiao'] },
+    { n:'意大利面(熟)', k:158, g:150, a:['pasta','yidalimian'] },
+    { n:'燕麦(干)', k:389, g:40, a:['oats','yanmai'] },
+    { n:'面包(白)', k:265, g:60, a:['白面包','bread'] },
+    { n:'全麦面包', k:250, g:60, a:['wholemeal bread','whole wheat'] },
+    { n:'红薯', k:99, g:150, a:['地瓜','sweet potato'] },
+    { n:'土豆', k:77, g:150, a:['马铃薯','potato'] },
+    { n:'南瓜', k:26, g:150, a:['pumpkin','nan gua'] },
+    /* ---- 蛋白 / 肉蛋奶 ---- */
     { n:'鸡胸肉', k:165, g:100, a:['鸡胸','chicken breast'] },
     { n:'鸡腿肉', k:209, g:100, a:['鸡腿','chicken thigh'] },
     { n:'鸡蛋', k:144, g:50, a:['蛋','egg'] },
-    { n:'香蕉', k:89, g:120, a:['banana'] },
-    { n:'苹果', k:52, g:150, a:['apple'] },
+    { n:'瘦猪肉', k:143, g:100, a:['猪肉','pork','zhurou'] },
+    { n:'瘦牛肉', k:187, g:100, a:['牛肉','beef','niurou'] },
+    { n:'三文鱼', k:208, g:100, a:['salmon','sanwenyu'] },
+    { n:'虾', k:99, g:100, a:['shrimp','prawn','xia'] },
+    { n:'豆腐', k:76, g:100, a:['tofu','doufu'] },
     { n:'牛奶', k:65, g:250, a:['milk'] },
     { n:'无糖豆浆', k:31, g:250, a:['豆浆','soy milk','doujiang'] },
     { n:'酸奶', k:72, g:150, a:['yogurt','suannai'] },
     { n:'希腊酸奶', k:59, g:150, a:['greek yogurt'] },
-    { n:'红薯', k:99, g:150, a:['地瓜','sweet potato'] },
-    { n:'土豆', k:77, g:150, a:['马铃薯','potato'] },
-    { n:'南瓜', k:26, g:150, a:['pumpkin','nan gua'] },
+    { n:'牛油果', k:160, g:100, a:['avocado','niuyouguo'] },
+    { n:'花生', k:567, g:30, a:['peanut','huasheng'] },
+    { n:'核桃', k:654, g:30, a:['walnut','hetao'] },
+    /* ---- 蔬果 ---- */
     { n:'西兰花', k:34, g:100, a:['青菜花','broccoli'] },
     { n:'番茄', k:18, g:100, a:['西红柿','tomato','fanqie'] },
     { n:'黄瓜', k:15, g:100, a:['cucumber','huanggua'] },
     { n:'胡萝卜', k:41, g:100, a:['carrot','huluobo'] },
     { n:'菠菜', k:23, g:100, a:['spinach','bocai'] },
-    { n:'豆腐', k:76, g:100, a:['tofu','doufu'] },
-    { n:'瘦猪肉', k:143, g:100, a:['猪肉','pork','zhurou'] },
-    { n:'瘦牛肉', k:187, g:100, a:['牛肉','beef','niurou'] },
-    { n:'三文鱼', k:208, g:100, a:['salmon','sanwenyu'] },
-    { n:'虾', k:99, g:100, a:['shrimp','prawn','xia'] },
-    { n:'面包(白)', k:265, g:60, a:['白面包','bread'] },
-    { n:'全麦面包', k:250, g:60, a:['wholemeal bread','whole wheat'] },
-    { n:'面条(熟)', k:138, g:150, a:['面','noodle','miantiao'] },
-    { n:'意大利面(熟)', k:158, g:150, a:['pasta','yidalimian'] },
-    { n:'燕麦(干)', k:389, g:40, a:['oats','yanmai'] },
-    { n:'花生', k:567, g:30, a:['peanut','huasheng'] },
-    { n:'核桃', k:654, g:30, a:['walnut','hetao'] },
-    { n:'牛油果', k:160, g:100, a:['avocado','niuyouguo'] },
+    { n:'香蕉', k:89, g:120, a:['banana'] },
+    { n:'苹果', k:52, g:150, a:['apple'] },
+    { n:'橙', k:47, g:130, a:['orange','cheng'] },
+    { n:'西瓜', k:30, g:200, a:['watermelon','xigua'] },
+    { n:'草莓', k:32, g:100, a:['strawberry','caomei'] },
+    /* ---- 饮品 / 甜点 ---- */
     { n:'可乐', k:43, g:330, a:['cola','kele'] },
     { n:'黑咖啡', k:1, g:240, a:['coffee','kafei'] },
     { n:'拿铁', k:60, g:300, a:['latte','naluo'] },
     { n:'珍珠奶茶', k:90, g:500, a:['bubble tea','milk tea','zhenzhunaicha'] },
-    { n:'橙', k:47, g:130, a:['orange','cheng'] },
-    { n:'西瓜', k:30, g:200, a:['watermelon','xigua'] },
-    { n:'草莓', k:32, g:100, a:['strawberry','caomei'] },
-    { n:'鸡胸肉沙拉', k:120, g:250, a:['salad','沙拉'] },
-    /* 新加坡常吃的熟食（每100g 估算） */
+    /* ---- 整份菜品 / 盖饭 / 面食（每100g 估算，默认按一份约 350–500g）---- */
+    { n:'三文鱼盖饭', k:185, g:400, a:['三文鱼饭','salmon rice','salmon don','salmon donburi','鲑鱼盖饭'] },
+    { n:'牛肉盖饭', k:180, g:400, a:['牛丼','beef rice','beef don','gyudon'] },
+    { n:'照烧鸡腿饭', k:195, g:400, a:['teriyaki chicken rice','照烧鸡饭'] },
+    { n:'叉烧饭', k:200, g:400, a:['char siu rice','叉烧拼饭'] },
+    { n:'煲仔饭', k:200, g:400, a:['claypot rice','砂锅饭'] },
+    { n:'咖喱饭', k:180, g:350, a:['curry rice','咖喱鸡饭'] },
+    { n:'蛋包饭', k:190, g:350, a:['omelette rice','omelet rice'] },
+    { n:'蛋炒饭', k:190, g:300, a:['炒饭','egg fried rice','扬州炒饭','yangzhou fried rice'] },
+    { n:'虾仁炒饭', k:200, g:300, a:['shrimp fried rice'] },
+    { n:'宫保鸡丁', k:180, g:200, a:['kung pao chicken','宫保鸡丁饭'] },
+    { n:'麻婆豆腐', k:150, g:200, a:['mapo tofu'] },
+    { n:'红烧肉', k:480, g:150, a:['braised pork'] },
+    { n:'糖醋里脊', k:280, g:150, a:['sweet sour pork','糖醋肉'] },
+    { n:'鱼香肉丝', k:160, g:200, a:['yu xiang pork'] },
+    { n:'西红柿炒蛋', k:110, g:200, a:['番茄炒蛋','scrambled egg tomato'] },
+    { n:'青椒肉丝', k:140, g:200, a:['pepper pork'] },
+    { n:'回锅肉', k:330, g:150, a:['twice cooked pork'] },
+    { n:'清蒸鱼', k:120, g:200, a:['steamed fish'] },
+    { n:'白灼虾', k:100, g:150, a:['poached shrimp','白灼虾球'] },
+    { n:'饺子(猪肉)', k:250, g:100, a:['dumpling','jiaozi','水饺'] },
+    { n:'煎饺', k:230, g:100, a:['potsticker','fried dumpling','锅贴'] },
+    { n:'小笼包', k:220, g:100, a:['xiaolongbao','soup dumpling'] },
+    { n:'牛肉面', k:120, g:500, a:['beef noodle','牛面'] },
+    { n:'拉面(豚骨)', k:130, g:500, a:['tonkotsu ramen','ramen','日式拉面'] },
+    { n:'麻辣烫', k:95, g:400, a:['malatang'] },
+    { n:'麻辣香锅', k:200, g:300, a:['malaxiangguo'] },
+    { n:'螺蛳粉', k:150, g:550, a:['luosifen'] },
+    { n:'凉皮', k:110, g:350, a:['liangpi'] },
+    { n:'肉夹馍', k:230, g:200, a:['roujiamo'] },
+    { n:'煎饼果子', k:200, g:250, a:['jianbing'] },
+    { n:'肠粉', k:110, g:300, a:['cheung fun','粢饭'] },
+    { n:'汉堡(牛肉)', k:290, g:150, a:['hamburger','burger'] },
+    { n:'披萨(芝士)', k:270, g:150, a:['pizza'] },
+    { n:'寿司(三文鱼)', k:160, g:200, a:['sushi','三文鱼寿司'] },
+    { n:'天妇罗', k:300, g:150, a:['tempura'] },
+    { n:'蔬菜沙拉', k:50, g:250, a:['salad','沙拉','vegetable salad'] },
+    { n:'鸡胸肉沙拉', k:120, g:250, a:['chicken salad'] },
+    { n:'三明治', k:220, g:200, a:['sandwich'] },
+    { n:'炸鸡', k:300, g:150, a:['fried chicken','kfc','鸡块'] },
+    { n:'油条', k:386, g:60, a:['youtiao'] },
+    /* ---- 新加坡 / 东南亚熟食（每100g 估算）---- */
     { n:'海南鸡饭', k:160, g:400, a:['hainanese chicken rice'] },
     { n:'叻沙', k:130, g:400, a:['laksa'] },
     { n:'炒粿条', k:185, g:400, a:['char kway teow','炒果条'] },
@@ -102,15 +147,25 @@ const HealthPage = {
       ],
       extraHTML:`
         <div class="field">
-          <label>吃了什么（一个个加，自动算热量）</label>
+          <label>吃了什么（搜食物 / 菜品名，自动算热量）</label>
           <div style="position:relative">
-            <input class="inp" id="ingInput" placeholder="输入食材，如 玉米 / 鸡胸肉 / 牛奶…" autocomplete="off">
+            <input class="inp" id="ingInput" placeholder="输入食物或菜品，如 玉米 / 三文鱼盖饭 / 奶茶…" autocomplete="off">
             <div class="suggest" id="ingSuggest" style="display:none"></div>
           </div>
           <div class="ing-list" id="ingList"></div>
           <div class="ing-total">本餐合计 <b id="ingTotal">0</b> kcal</div>
         </div>
-        <div class="field"><label>快速选择（点一下加入本餐）</label><div class="opts" id="foodQuick" style="max-height:150px;overflow-y:auto">${quick}</div></div>
+        <div class="field">
+          <label>找不到？手动加一份（自由输入，像薄荷健康那样）</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input class="inp" id="custName" placeholder="食物名，如 三文鱼盖饭" style="flex:1;min-width:110px">
+            <input class="inp" id="custKcal" type="number" inputmode="decimal" placeholder="热量 kcal" style="width:100px">
+            <input class="inp" id="custGram" type="number" inputmode="decimal" placeholder="克(可选)" style="width:88px">
+            <button type="button" class="btn btn-soft btn-sm" id="custAdd">＋ 加入</button>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:6px">只填「热量」就按这一份算；知道多重就一并填，更准。</div>
+        </div>
+        <div class="field"><label>常用 / 快速选择（点一下加入本餐）</label><div class="opts" id="foodQuick" style="max-height:160px;overflow-y:auto">${quick}</div></div>
         <div id="aiBox" class="field" style="display:none;background:var(--brand-soft);border-radius:12px;padding:12px;margin-top:4px">
           <label style="font-weight:650">🤖 自动识别热量（拍完照后出现）</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
@@ -139,7 +194,7 @@ const HealthPage = {
                 <div class="ing-k">${Math.round(it.per100g*it.grams/100)} kcal</div>
                 <button type="button" class="mini-btn" data-rm="${idx}">✕</button>
               </div>`).join('')
-            : '<div class="ing-empty">还没加食材，在上方搜索添加，或点下方快速选择～</div>';
+            : '<div class="ing-empty">还没加，在上方搜索添加，或点下方快速选择 / 手动加～</div>';
           const total = HealthPage._mealItems.reduce((s,it)=>s + it.per100g*U.num(it.grams)/100, 0);
           HealthPage._mealTotal = Math.round(total);
           if(totalEl) totalEl.textContent = HealthPage._mealTotal;
@@ -166,6 +221,20 @@ const HealthPage = {
           const rm = e.target.closest('[data-rm]'); if(rm){ HealthPage._mealItems.splice(+rm.dataset.rm,1); render(); }
         });
 
+        /* 自由输入：手动加一份食物（名称 + 热量，可选克数） */
+        const cn = r.querySelector('#custName'), ck = r.querySelector('#custKcal'), cg = r.querySelector('#custGram');
+        const addCustom = () => {
+          const name = cn.value.trim();
+          const kcal = U.num(ck.value);
+          if(!name){ UI.toast('先写食物名'); return; }
+          if(!kcal){ UI.toast('填一下热量 kcal'); return; }
+          const g = U.num(cg.value) || 100;
+          HealthPage._mealItems.push({ name, per100g: kcal*100/g, grams: g });
+          cn.value=''; ck.value=''; cg.value=''; render();
+        };
+        r.querySelector('#custAdd').addEventListener('click', addCustom);
+        [cn, ck, cg].forEach(el=> el.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addCustom(); } }));
+
         const qp = r.querySelector('#foodQuick');
         if(qp) qp.addEventListener('click', e=>{
           const b = e.target.closest('[data-food]'); if(!b) return;
@@ -182,7 +251,7 @@ const HealthPage = {
       },
       onSubmit(st){
         const items = (HealthPage._mealItems||[]).filter(it=> it && it.name && it.grams !== undefined && it.grams !== '');
-        if(!items.length){ UI.toast('请先添加至少一样食材'); return false; }
+        if(!items.length){ UI.toast('请先添加至少一样食物'); return false; }
         const total = items.reduce((s,it)=>s + it.per100g*U.num(it.grams)/100, 0);
         const name = items.map(it=>it.name).join(' + ');
         Store.add('meals', { date:st.date||U.today(), type:st.type, name, calories:Math.round(total), items, note:st.note||'', photo:st.photo||'', ts:Date.now() });
