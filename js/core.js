@@ -175,10 +175,13 @@ const Store = {
 const Sync = {
   API: 'https://api.github.com/gists',
   FILE: 'phub_state.json',
-  get token(){ return (Store.d.settings && Store.d.settings.gistToken) || ''; },
+  get token(){ return this._clean((Store.d.settings && Store.d.settings.gistToken) || ''); },
   get gistId(){ return (Store.d.settings && Store.d.settings.gistId) || ''; },
   get auto(){ return !!(Store.d.settings && Store.d.settings.autoSync); },
   _t: null,
+  /* 彻底清洗 token：GitHub token 仅含 [A-Za-z0-9_]，剔除所有不可见/多余字符
+     （零宽空格、换行、智能引号等 .trim() 去不掉的东西，会导致 401 Bad credentials） */
+  _clean(s){ return (s||'').replace(/[^A-Za-z0-9_]/g, ''); },
   _headers(){ return { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }; },
   _body(content){ return { description: '追风工作台云同步', public: false, files: { [this.FILE]: { content } } }; },
 
@@ -201,7 +204,16 @@ const Sync = {
     if(!this.gistId){
       res = await fetch(this.API, { method:'POST', headers:this._headers(), body: JSON.stringify(this._body(content)) });
     }
-    if(!res || !res.ok) throw new Error('GitHub 返回 ' + (res ? res.status : '?') + (res && res.status===401 ? '（Token 无效：请确认电脑与手机填的是【同一个】token，且为 classic token 并已勾选 gist 权限、未被撤销）' : (res && res.status===403 ? '（频率限制，稍后再试）' : '')));
+    if(!res || !res.ok){
+      let detail = '';
+      try { const j = await res.json(); if(j && j.message) detail = '（' + j.message + '）'; } catch(e){}
+      const len = this.token.length;
+      const hint = (res && res.status===401)
+        ? ('：请确认电脑与手机填的是【同一个】token、为 classic 且已勾选 gist、未被撤销。'
+           + '（清洗后 token 长度为 ' + len + ' 位；github_pat_ 开头约 82 位、ghp_ 开头应为 40 位。若长度不对，说明复制时混入了隐藏字符，建议【手动重新输入】而非粘贴）')
+        : (res && res.status===403 ? '（频率限制，稍后再试）' : '');
+      throw new Error('GitHub 返回 ' + (res ? res.status : '?') + detail + hint);
+    }
     const data = await res.json();
     if(data && data.id) this._setGist(data.id);
     return data;

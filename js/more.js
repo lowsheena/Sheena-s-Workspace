@@ -346,10 +346,10 @@ const Settings = {
       const t = ss.lastSync ? ss.lastSync.replace('T',' ').slice(0,16) : '从未';
       syncStat.textContent = ss.gistId ? ('已连接 · '+t) : '未连接';
     };
-    el.querySelector('#gistToken').addEventListener('change', e=>{ Store.d.settings.gistToken = e.target.value.trim(); Store.save(); UI.toast('Token 已保存'); });
+    el.querySelector('#gistToken').addEventListener('change', e=>{ Store.d.settings.gistToken = Sync._clean(e.target.value); Store.save(); UI.toast('Token 已保存（已自动清洗隐藏字符）'); });
     el.querySelector('#autoSync').addEventListener('change', e=>{ Store.d.settings.autoSync = e.target.checked; Store.save(); UI.toast(e.target.checked?'已开启自动同步':'已关闭自动同步'); });
     el.querySelector('#syncNow').addEventListener('click', async ()=>{
-      Store.d.settings.gistToken = (el.querySelector('#gistToken').value || '').trim(); Store.save();
+      Store.d.settings.gistToken = Sync._clean(el.querySelector('#gistToken').value || ''); Store.save();
       const btn = el.querySelector('#syncNow'); btn.disabled = true; const old = btn.textContent; btn.textContent = '同步中…';
       try{
         const r = await Sync.sync();
@@ -360,12 +360,12 @@ const Settings = {
       finally { btn.disabled = false; btn.textContent = old; refreshStat(); }
     });
     el.querySelector('#syncUp').addEventListener('click', async ()=>{
-      Store.d.settings.gistToken = (el.querySelector('#gistToken').value || '').trim(); Store.save();
+      Store.d.settings.gistToken = Sync._clean(el.querySelector('#gistToken').value || ''); Store.save();
       try{ await Sync.upload(); Store.d.settings.lastSync = new Date().toISOString(); Store.save(); UI.toast('已上传到云端'); App.refresh(); }
       catch(err){ UI.toast('上传失败：' + (err.message||err)); }
     });
     el.querySelector('#syncDown').addEventListener('click', async ()=>{
-      Store.d.settings.gistToken = (el.querySelector('#gistToken').value || '').trim(); Store.save();
+      Store.d.settings.gistToken = Sync._clean(el.querySelector('#gistToken').value || ''); Store.save();
       try{
         const r = await Sync.download(); if(!r) throw new Error('云端没有数据');
         const lt = (Store.d.settings && Store.d.settings.gistToken) || '';
