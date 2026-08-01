@@ -5,14 +5,70 @@ const HealthPage = {
   title: '减肥',
   tab: 'today',
   MEALS: [ {k:'breakfast',l:'早餐',i:'🌅'}, {k:'lunch',l:'午餐',i:'☀️'}, {k:'dinner',l:'晚餐',i:'🌙'}, {k:'snack',l:'加餐',i:'🍪'} ],
-  /* 常见食物（含新加坡本地）估算热量 kcal */
-  FOODS: [
-    ['白米饭 1碗',220],['海南鸡饭',600],['叻沙 Laksa',500],['炒粿条',745],['云吞面',420],['杂菜饭',520],
-    ['椰浆饭',500],['肉骨茶',350],['咖椰吐司套餐',400],['印度煎饼',300],['鱼丸面',350],['酿豆腐',380],
-    ['鸡胸肉 100g',165],['水煮蛋 1个',70],['牛奶 250ml',130],['无糖豆浆',60],['沙拉（少酱）',180],
-    ['苹果',80],['香蕉',90],['全麦面包 1片',80],['白粥 1碗',120],['饺子 10个',400],
-    ['珍珠奶茶',350],['拿铁',150],['可乐 330ml',140],['薯条 中份',340],['汉堡',520],['炸鸡 2块',450]
+  /* 常见食物库：每 100g 的热量(kcal) + 别名(支持英文/拼音搜索) + 快速加入时的默认克数 g
+     数据为常见参考值，便于「输入食材名自动换算热量」 */
+  FOOD_DB: [
+    { n:'玉米', k:112, g:150, a:['corn','玉蜀黍','maize'] },
+    { n:'白米饭', k:116, g:150, a:['米饭','rice'] },
+    { n:'糙米饭', k:112, g:150, a:['糙米','brown rice'] },
+    { n:'粥', k:46, g:200, a:['白粥','congee','porridge'] },
+    { n:'馒头', k:223, g:80, a:['mantou'] },
+    { n:'鸡胸肉', k:165, g:100, a:['鸡胸','chicken breast'] },
+    { n:'鸡腿肉', k:209, g:100, a:['鸡腿','chicken thigh'] },
+    { n:'鸡蛋', k:144, g:50, a:['蛋','egg'] },
+    { n:'香蕉', k:89, g:120, a:['banana'] },
+    { n:'苹果', k:52, g:150, a:['apple'] },
+    { n:'牛奶', k:65, g:250, a:['milk'] },
+    { n:'无糖豆浆', k:31, g:250, a:['豆浆','soy milk','doujiang'] },
+    { n:'酸奶', k:72, g:150, a:['yogurt','suannai'] },
+    { n:'希腊酸奶', k:59, g:150, a:['greek yogurt'] },
+    { n:'红薯', k:99, g:150, a:['地瓜','sweet potato'] },
+    { n:'土豆', k:77, g:150, a:['马铃薯','potato'] },
+    { n:'南瓜', k:26, g:150, a:['pumpkin','nan gua'] },
+    { n:'西兰花', k:34, g:100, a:['青菜花','broccoli'] },
+    { n:'番茄', k:18, g:100, a:['西红柿','tomato','fanqie'] },
+    { n:'黄瓜', k:15, g:100, a:['cucumber','huanggua'] },
+    { n:'胡萝卜', k:41, g:100, a:['carrot','huluobo'] },
+    { n:'菠菜', k:23, g:100, a:['spinach','bocai'] },
+    { n:'豆腐', k:76, g:100, a:['tofu','doufu'] },
+    { n:'瘦猪肉', k:143, g:100, a:['猪肉','pork','zhurou'] },
+    { n:'瘦牛肉', k:187, g:100, a:['牛肉','beef','niurou'] },
+    { n:'三文鱼', k:208, g:100, a:['salmon','sanwenyu'] },
+    { n:'虾', k:99, g:100, a:['shrimp','prawn','xia'] },
+    { n:'面包(白)', k:265, g:60, a:['白面包','bread'] },
+    { n:'全麦面包', k:250, g:60, a:['wholemeal bread','whole wheat'] },
+    { n:'面条(熟)', k:138, g:150, a:['面','noodle','miantiao'] },
+    { n:'意大利面(熟)', k:158, g:150, a:['pasta','yidalimian'] },
+    { n:'燕麦(干)', k:389, g:40, a:['oats','yanmai'] },
+    { n:'花生', k:567, g:30, a:['peanut','huasheng'] },
+    { n:'核桃', k:654, g:30, a:['walnut','hetao'] },
+    { n:'牛油果', k:160, g:100, a:['avocado','niuyouguo'] },
+    { n:'可乐', k:43, g:330, a:['cola','kele'] },
+    { n:'黑咖啡', k:1, g:240, a:['coffee','kafei'] },
+    { n:'拿铁', k:60, g:300, a:['latte','naluo'] },
+    { n:'珍珠奶茶', k:90, g:500, a:['bubble tea','milk tea','zhenzhunaicha'] },
+    { n:'橙', k:47, g:130, a:['orange','cheng'] },
+    { n:'西瓜', k:30, g:200, a:['watermelon','xigua'] },
+    { n:'草莓', k:32, g:100, a:['strawberry','caomei'] },
+    { n:'鸡胸肉沙拉', k:120, g:250, a:['salad','沙拉'] },
+    /* 新加坡常吃的熟食（每100g 估算） */
+    { n:'海南鸡饭', k:160, g:400, a:['hainanese chicken rice'] },
+    { n:'叻沙', k:130, g:400, a:['laksa'] },
+    { n:'炒粿条', k:185, g:400, a:['char kway teow','炒果条'] },
+    { n:'椰浆饭', k:175, g:400, a:['nasi lemak'] },
+    { n:'肉骨茶', k:110, g:400, a:['bak kut teh'] },
+    { n:'咖喱鸡', k:170, g:300, a:['curry chicken'] },
+    { n:'福建面', k:150, g:400, a:['hokkien mee'] },
+    { n:'云吞面', k:120, g:400, a:['wonton noodle','wantonnoodle'] },
+    { n:'咖椰吐司', k:400, g:120, a:['kaya toast'] },
+    { n:'印度煎饼', k:300, g:120, a:['roti prata','prata'] }
   ],
+  /* 按名称/别名模糊搜索食物（最多 8 条） */
+  searchFood(q){
+    const s = String(q||'').trim().toLowerCase();
+    if(!s) return [];
+    return HealthPage.FOOD_DB.filter(f => f.n.toLowerCase().includes(s) || (f.a||[]).some(x=>x.toLowerCase().includes(s)));
+  },
   SPORTS: [
     {l:'快走', met:3.8, i:'🚶‍♀️'}, {l:'慢跑', met:8, i:'🏃‍♀️'}, {l:'骑车', met:6, i:'🚴‍♀️'},
     {l:'游泳', met:7, i:'🏊‍♀️'}, {l:'跳绳', met:10, i:'🪢'}, {l:'力量训练', met:5, i:'🏋️‍♀️'},
@@ -33,18 +89,28 @@ const HealthPage = {
   /* ---------------- 录入 ---------------- */
   addMeal(type){
     HealthPage._curPhoto = null;
-    const quick = this.FOODS.map((f,i)=>`<button type="button" class="opt" data-food="${i}" style="font-weight:500;font-size:12.5px">${f[0]} <b style="color:var(--text-3)">${f[1]}</b></button>`).join('');
+    HealthPage._mealItems = [];
+    HealthPage._mealTotal = 0;
+    const quick = this.FOOD_DB.map((f,i)=>`<button type="button" class="opt" data-food="${i}" style="font-weight:500;font-size:12.5px">${f.n} <b style="color:var(--text-3)">${f.k}</b></button>`).join('');
     UI.form({
       title:'记录饮食',
       fields:[
         { key:'type', label:'餐次', type:'opts', value:type||this.guessMeal(), options:this.MEALS.map(m=>({v:m.k,l:m.i+' '+m.l})) },
-        { key:'name', label:'吃了什么', type:'text', value:'', required:true, placeholder:'例：海南鸡饭 + 冰柠檬水' },
-        { key:'calories', label:'热量 kcal', type:'number', value:'', required:true, placeholder:'0', half:true },
         { key:'date', label:'日期', type:'date', value:U.today(), half:true },
-        { key:'photo', label:'拍照记录（可选）', type:'photo', value:'' },
-        { key:'note', label:'备注', type:'text', value:'', placeholder:'感受 / 地点' }
+        { key:'photo', label:'拍照记录（可选，可自动识别热量）', type:'photo', value:'' },
+        { key:'note', label:'备注', type:'text', value:'', placeholder:'感受 / 地点', half:true }
       ],
-      extraHTML:`<div class="field"><label>快速选择（点一下自动填入）</label><div class="opts" id="foodQuick" style="max-height:150px;overflow-y:auto">${quick}</div></div>
+      extraHTML:`
+        <div class="field">
+          <label>吃了什么（一个个加，自动算热量）</label>
+          <div style="position:relative">
+            <input class="inp" id="ingInput" placeholder="输入食材，如 玉米 / 鸡胸肉 / 牛奶…" autocomplete="off">
+            <div class="suggest" id="ingSuggest" style="display:none"></div>
+          </div>
+          <div class="ing-list" id="ingList"></div>
+          <div class="ing-total">本餐合计 <b id="ingTotal">0</b> kcal</div>
+        </div>
+        <div class="field"><label>快速选择（点一下加入本餐）</label><div class="opts" id="foodQuick" style="max-height:150px;overflow-y:auto">${quick}</div></div>
         <div id="aiBox" class="field" style="display:none;background:var(--brand-soft);border-radius:12px;padding:12px;margin-top:4px">
           <label style="font-weight:650">🤖 自动识别热量（拍完照后出现）</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
@@ -60,23 +126,68 @@ const HealthPage = {
         if(b1) b1.disabled = false; if(b2) b2.disabled = false;
       },
       onMount(r){
+        const input = r.querySelector('#ingInput');
+        const suggest = r.querySelector('#ingSuggest');
+        const listEl = r.querySelector('#ingList');
+        const totalEl = r.querySelector('#ingTotal');
+
+        const render = () => {
+          listEl.innerHTML = HealthPage._mealItems.length
+            ? HealthPage._mealItems.map((it,idx)=>`<div class="ing-item">
+                <div class="ing-name">${U.esc(it.name)}</div>
+                <div class="ing-g"><input class="inp ing-g-input" type="number" inputmode="decimal" value="${it.grams}" data-g="${idx}"><span>克</span></div>
+                <div class="ing-k">${Math.round(it.per100g*it.grams/100)} kcal</div>
+                <button type="button" class="mini-btn" data-rm="${idx}">✕</button>
+              </div>`).join('')
+            : '<div class="ing-empty">还没加食材，在上方搜索添加，或点下方快速选择～</div>';
+          const total = HealthPage._mealItems.reduce((s,it)=>s + it.per100g*U.num(it.grams)/100, 0);
+          HealthPage._mealTotal = Math.round(total);
+          if(totalEl) totalEl.textContent = HealthPage._mealTotal;
+        };
+
+        const doSuggest = () => {
+          const q = input.value.trim();
+          const hits = HealthPage.searchFood(q);
+          if(!q || !hits.length){ suggest.style.display='none'; suggest.innerHTML=''; return; }
+          suggest.innerHTML = hits.slice(0,8).map(h=>`<div class="sug" data-n="${U.esc(h.n)}" data-k="${h.k}" data-g="${h.g||100}">${U.esc(h.n)} <b>${h.k} kcal/100g</b></div>`).join('');
+          suggest.style.display='block';
+        };
+        input.addEventListener('input', doSuggest);
+        input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); const f=suggest.querySelector('.sug'); if(f) f.click(); } });
+        suggest.addEventListener('click', e=>{
+          const s = e.target.closest('.sug'); if(!s) return;
+          HealthPage._mealItems.push({ name:s.dataset.n, per100g:U.num(s.dataset.k), grams:U.num(s.dataset.g)||100 });
+          input.value=''; suggest.style.display='none'; suggest.innerHTML=''; render();
+        });
+        listEl.addEventListener('input', e=>{
+          const gi = e.target.closest('[data-g]'); if(gi){ HealthPage._mealItems[+gi.dataset.g].grams = U.num(gi.value)||0; render(); }
+        });
+        listEl.addEventListener('click', e=>{
+          const rm = e.target.closest('[data-rm]'); if(rm){ HealthPage._mealItems.splice(+rm.dataset.rm,1); render(); }
+        });
+
+        const qp = r.querySelector('#foodQuick');
+        if(qp) qp.addEventListener('click', e=>{
+          const b = e.target.closest('[data-food]'); if(!b) return;
+          const f = HealthPage.FOOD_DB[+b.dataset.food];
+          HealthPage._mealItems.push({ name:f.n, per100g:f.k, grams:f.g||100 });
+          render();
+        });
+
         const b1 = r.querySelector('#btnLabel'), b2 = r.querySelector('#btnAI');
-        if(b1) b1.addEventListener('click', ()=> HealthPage.recognizeLabel(r));
-        if(b2) b2.addEventListener('click', ()=> HealthPage.estimateMeal(r));
+        if(b1) b1.addEventListener('click', ()=> HealthPage.recognizeLabel(r, render));
+        if(b2) b2.addEventListener('click', ()=> HealthPage.estimateMeal(r, render));
+
+        render();
       },
       onSubmit(st){
-        Store.add('meals', { date:st.date||U.today(), type:st.type, name:st.name, calories:U.round(U.num(st.calories),0), note:st.note||'', photo:st.photo||'', ts:Date.now() });
-        UI.toast('已记录 '+st.calories+' kcal'); App.refresh();
+        const items = (HealthPage._mealItems||[]).filter(it=> it && it.name && it.grams !== undefined && it.grams !== '');
+        if(!items.length){ UI.toast('请先添加至少一样食材'); return false; }
+        const total = items.reduce((s,it)=>s + it.per100g*U.num(it.grams)/100, 0);
+        const name = items.map(it=>it.name).join(' + ');
+        Store.add('meals', { date:st.date||U.today(), type:st.type, name, calories:Math.round(total), items, note:st.note||'', photo:st.photo||'', ts:Date.now() });
+        UI.toast('已记录 '+Math.round(total)+' kcal'); App.refresh();
       }
-    });
-    const q = document.getElementById('foodQuick');
-    if(q) q.addEventListener('click', e => {
-      const b = e.target.closest('[data-food]'); if(!b) return;
-      const f = HealthPage.FOODS[+b.dataset.food];
-      const n = document.getElementById('f_name'), c = document.getElementById('f_calories');
-      n.value = n.value ? n.value + ' + ' + f[0] : f[0];
-      c.value = U.num(c.value) + f[1];
-      n.dispatchEvent(new Event('input')); c.dispatchEvent(new Event('input'));
     });
   },
   guessMeal(){ const h = new Date().getHours(); return h<10?'breakfast':h<15?'lunch':h<21?'dinner':'snack'; },
@@ -107,7 +218,7 @@ const HealthPage = {
       : '已从营养成分表识别，请核对后保存';
     return { cal: best.kcal, note, basis };
   },
-  async recognizeLabel(r){
+  async recognizeLabel(r, render){
     const box = r.querySelector('#aiStatus'); const setS = x=>{ if(box) box.textContent = x; };
     if(!HealthPage._curPhoto){ UI.toast('请先拍照'); return; }
     setS('识别营养成分表中…'); UI.toast('识别营养成分表…');
@@ -115,13 +226,13 @@ const HealthPage = {
       const raw = await HealthPage._ocr(HealthPage._curPhoto);
       const info = HealthPage.parseNutritionLabel(raw);
       if(!info){ setS('没找到「能量」数据，请手填或试 AI 估算'); UI.toast('未找到能量信息'); return; }
-      const cal = r.querySelector('#f_calories'), nam = r.querySelector('#f_name');
-      cal.value = info.cal; cal.dispatchEvent(new Event('input'));
-      if(!nam.value){ nam.value = '包装食品'; nam.dispatchEvent(new Event('input')); }
-      setS(info.note); UI.toast('已识别 '+info.cal+' kcal（请核对后保存）');
+      HealthPage._mealItems = HealthPage._mealItems || [];
+      HealthPage._mealItems.push({ name:'包装食品（'+(info.basis==='per100'?'每100g':'每份')+'）', per100g: info.cal, grams: 100 });
+      if(render) render();
+      setS(info.note + '（可在食材里改克数）'); UI.toast('已加入 '+info.cal+' kcal');
     }catch(e){ setS('识别失败：'+(e.message||e)); UI.toast('识别失败'); }
   },
-  async estimateMeal(r){
+  async estimateMeal(r, render){
     const s = Store.d.settings;
     const box = r.querySelector('#aiStatus'); const setS = x=>{ if(box) box.textContent = x; };
     if(!HealthPage._curPhoto){ UI.toast('请先拍照'); return; }
@@ -129,10 +240,12 @@ const HealthPage = {
     setS('AI 估算中…（可能几秒）'); UI.toast('AI 正在估算热量…');
     try{
       const res = await HealthPage._gemini(s.geminiModel || 'gemini-2.0-flash', s.geminiKey, HealthPage._curPhoto);
-      const cal = r.querySelector('#f_calories'), nam = r.querySelector('#f_name');
-      if(res.calories){ cal.value = Math.round(res.calories); cal.dispatchEvent(new Event('input')); }
-      if(res.dish && !nam.value){ nam.value = res.dish; nam.dispatchEvent(new Event('input')); }
-      setS('AI 估算：'+(res.dish||'这餐')+' 约 '+Math.round(res.calories||0)+' kcal'); UI.toast('AI 估算 '+Math.round(res.calories||0)+' kcal');
+      const cal = Math.round(U.num(res.calories));
+      if(!cal){ setS('AI 没给出热量，请手填或重试'); UI.toast('AI 未识别热量'); return; }
+      HealthPage._mealItems = HealthPage._mealItems || [];
+      HealthPage._mealItems.push({ name: res.dish || 'AI 识别餐', per100g: cal, grams: 100 });
+      if(render) render();
+      setS('AI 估算：'+(res.dish||'这餐')+' 约 '+cal+' kcal'); UI.toast('AI 估算 '+cal+' kcal');
     }catch(e){ setS('AI 失败：'+(e.message||e)); UI.toast('AI 估算失败'); }
   },
   async _gemini(model, key, dataUrl){

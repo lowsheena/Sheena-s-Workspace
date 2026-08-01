@@ -432,3 +432,19 @@ select.inp{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
   .g2.tight{grid-template-columns:1fr}
 }
 @media print{.sidebar,.tabbar,.topbar{display:none}}
+
+/* ---------- 饮食食材编辑器 ---------- */
+.ing-list{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.ing-empty{ font-size:12.5px; color:var(--text-3); padding:8px 2px; }
+.ing-item{ display:flex; align-items:center; gap:8px; background:var(--bg-soft); border-radius:10px; padding:7px 10px; }
+.ing-name{ flex:1; min-width:0; font-size:13.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ing-g{ display:flex; align-items:center; gap:3px; font-size:12px; color:var(--text-2); }
+.ing-g-input{ width:56px !important; padding:4px 6px !important; font-size:13px !important; text-align:right; }
+.ing-k{ min-width:64px; text-align:right; font-size:13px; color:var(--text); font-weight:600; }
+.ing-total{ margin-top:10px; padding-top:9px; border-top:1px solid var(--line-soft); font-size:13.5px; color:var(--text-2); }
+.ing-total b{ font-size:18px; color:var(--text); margin:0 2px; letter-spacing:-.5px; }
+.suggest{ position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:0 10px 28px rgba(20,20,40,.14); max-height:220px; overflow-y:auto; }
+.suggest .sug{ padding:9px 12px; font-size:13.5px; cursor:pointer; border-bottom:1px solid var(--line-soft); }
+.suggest .sug:last-child{ border-bottom:none; }
+.suggest .sug:hover{ background:var(--brand-soft); }
+.suggest .sug b{ color:var(--text-3); margin-left:6px; font-weight:500; font-size:12px; }
