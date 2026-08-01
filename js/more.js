@@ -394,15 +394,24 @@ const Settings = {
       const box = el.querySelector('#syncDiag');
       if(!tok){ box.textContent='请先填写 Token 再点连接测试'; box.style.color='#e53'; return; }
       const len = tok.length;
+      /* 遮罩显示前4+后4位，确认实际发送的是哪个token */
+      const mask = len > 8 ? (tok.slice(0,4)+'…'+tok.slice(-4)) : tok;
       const lenHint = (raw.trim()!==tok) ? ('（⚠️ 检测到隐藏字符已被自动清洗，清洗后长度 '+len+' 位）') : ('（清洗后长度 '+len+' 位；ghp_ 应为 40、github_pat_ 约 82）');
       box.textContent='测试中…'; box.style.color='var(--text-2)';
       try{
         const r = await fetch('https://api.github.com/user', { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json' } });
         const scope = r.headers.get('X-OAuth-Scopes') || '(无)';
         const ok = r.ok;
-        box.innerHTML = 'GitHub 返回 <b>'+r.status+'</b> ｜ 权限: '+scope+(ok?' ｜ ✅ Token 有效，可同步':' ｜ ❌ Token 无效（不是这个新 token：请先清空输入框、再重新填入）')+'<br>'+lenHint;
+        box.innerHTML = '发送的 Token: <b>'+mask+'</b> ｜ GitHub 返回 <b>'+r.status+'</b> ｜ 权限: '+scope
+          +(ok?' ｜ ✅ Token 有效，可同步'
+            :' ｜ ❌ Token 无效 — 这台电脑的浏览器环境阻止了正常请求<br>'
+            +'🔧 请按顺序尝试：<br>'
+            +'① 按 <b>F12</b> 打开开发者工具 → Network 标签 → 再点一次本按钮 → 点 user 那行 → 看 Request Headers 里 <code>Authorization</code> 是不是 <code>Bearer ghp_5ig…</b><br>'
+            +'② 试一下浏览器的「无痕/隐私模式」打开追风工作台再测<br>'
+            +'③ 关掉所有浏览器扩展（尤其是密码管理器/安全类）再试')
+          +'<br>'+lenHint;
         box.style.color = ok ? '#2a9' : '#e53';
-      }catch(e){ box.textContent='请求失败：'+e.message+'（设备无法访问 api.github.com，或被浏览器拦截）'+' ｜ '+lenHint; box.style.color='#e53'; }
+      }catch(e){ box.textContent='请求失败：'+e.message+'（设备无法访问 api.github.com，或被浏览器拦截）'+' ｜ Token:'+mask+' ｜ '+lenHint; box.style.color='#e53'; }
     });
     /* ♻️ 强制刷新：清掉所有 Service Worker 缓存，重新加载到最新版代码 */
     el.querySelector('#forceReload').addEventListener('click', async ()=>{
