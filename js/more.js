@@ -234,22 +234,28 @@ const Settings = {
       </div>
 
       <div class="card" style="margin-bottom:14px;border:1px solid var(--brand)">
-        <div class="card-head"><h3>☁️ 云同步（手机电脑自动联通）</h3><span class="sub" id="syncStat">${s.gistId?'已连接':'未连接'}</span></div>
+        <div class="card-head"><h3>☁️ 云同步（手机电脑自动联通）</h3><span class="sub" id="syncStat">${s.syncUrl?'已配置':'未配置'}</span></div>
         <p style="font-size:12.5px;color:var(--text-2);line-height:1.7;margin:0 0 10px">
-          用你自己的 GitHub 私有 Gist 当「云盘」，电脑和手机读写同一份数据，自动保持一致。
-          数据只存在你的 GitHub 账号里，不经过任何第三方服务器。
+          通过你自己的 Cloudflare Worker 代理读写 GitHub 私有 Gist（数据只在你账号里）。
+          浏览器不直接碰 GitHub，所以不受你电脑网络/代理拦截的影响。
         </p>
         <div class="field" style="margin-bottom:8px">
-          <label>GitHub Token（仅 gist 权限）</label>
-          <input class="inp" id="gistToken" type="password" value="${s.gistToken||''}" placeholder="github_pat_..." autocomplete="off">
+          <label>同步地址（Worker URL）</label>
+          <input class="inp" id="syncUrl" type="text" value="${s.syncUrl||''}" placeholder="https://phub-sync.xxx.workers.dev" autocomplete="off">
+        </div>
+        <div class="field" style="margin-bottom:8px">
+          <label>同步密码（与 Worker 设置一致）</label>
+          <input class="inp" id="syncKey" type="text" value="${s.syncKey||'phub'}" placeholder="phub" autocomplete="off">
         </div>
         <details style="margin-bottom:10px">
-          <summary style="font-size:12.5px;color:var(--brand);cursor:pointer">怎么获取 Token？（只勾 gist 一项）</summary>
+          <summary style="font-size:12.5px;color:var(--brand);cursor:pointer">没有 Worker？点这里看 3 分钟搭建步骤</summary>
           <div style="font-size:12.5px;color:var(--text-2);line-height:1.7;margin-top:6px">
-            ① 打开 <b>github.com/settings/tokens</b> → 点「Generate new token (classic)」<br>
-            ② 只勾选 <b>gist</b> 这一项（其它都不要勾，权限越小越安全）<br>
-            ③ 生成后复制 Token 粘贴到上面<br>
-            ⚠️ Token 只存在你本机浏览器，可随时到 GitHub 撤销。
+            ① 登录 <b>dash.cloudflare.com</b>（免费，无需信用卡）→「Workers 和 Pages」→「创建 Worker」<br>
+            ② 把本应用附带的 <b>sync-worker.js</b> 代码粘贴进去并「部署」<br>
+            ③ 进入该 Worker「设置」→「变量」添加两个环境变量（选加密）：<br>
+            &nbsp;&nbsp;• <b>GH_TOKEN</b> = 你的 GitHub classic token（只勾 gist）<br>
+            &nbsp;&nbsp;• <b>PASSPHRASE</b> = 你设的同步密码（如 phub888）<br>
+            ④ 复制 Worker 网址填到上面「同步地址」，密码填 PASSPHRASE 即可。
           </div>
         </details>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
@@ -351,10 +357,13 @@ const Settings = {
       const t = ss.lastSync ? ss.lastSync.replace('T',' ').slice(0,16) : '从未';
       syncStat.textContent = ss.gistId ? ('已连接 · '+t) : '未连接';
     };
-    el.querySelector('#gistToken').addEventListener('change', e=>{ Store.d.settings.gistToken = Sync._clean(e.target.value); Store.save(); UI.toast('Token 已保存（已自动清洗隐藏字符）'); });
+    el.querySelector('#syncUrl').addEventListener('change', e=>{ Store.d.settings.syncUrl = (e.target.value||'').trim(); Store.save(); });
+    el.querySelector('#syncKey').addEventListener('change', e=>{ Store.d.settings.syncKey = (e.target.value||'').trim() || 'phub'; Store.save(); });
     el.querySelector('#autoSync').addEventListener('change', e=>{ Store.d.settings.autoSync = e.target.checked; Store.save(); UI.toast(e.target.checked?'已开启自动同步':'已关闭自动同步'); });
     el.querySelector('#syncNow').addEventListener('click', async ()=>{
-      Store.d.settings.gistToken = Sync._clean(el.querySelector('#gistToken').value || ''); Store.save();
+      Store.d.settings.syncUrl = (el.querySelector('#syncUrl').value||'').trim();
+      Store.d.settings.syncKey = (el.querySelector('#syncKey').value||'').trim() || 'phub';
+      Store.save();
       const btn = el.querySelector('#syncNow'); btn.disabled = true; const old = btn.textContent; btn.textContent = '同步中…';
       try{
         const r = await Sync.sync();
@@ -365,21 +374,24 @@ const Settings = {
       finally { btn.disabled = false; btn.textContent = old; refreshStat(); }
     });
     el.querySelector('#syncUp').addEventListener('click', async ()=>{
-      Store.d.settings.gistToken = Sync._clean(el.querySelector('#gistToken').value || ''); Store.save();
+      Store.d.settings.syncUrl = (el.querySelector('#syncUrl').value||'').trim();
+      Store.d.settings.syncKey = (el.querySelector('#syncKey').value||'').trim() || 'phub';
+      Store.save();
       try{ await Sync.upload(); Store.d.settings.lastSync = new Date().toISOString(); Store.save(); UI.toast('已上传到云端'); App.refresh(); }
       catch(err){ UI.toast('上传失败：' + (err.message||err)); }
     });
     el.querySelector('#syncDown').addEventListener('click', async ()=>{
-      Store.d.settings.gistToken = Sync._clean(el.querySelector('#gistToken').value || ''); Store.save();
+      Store.d.settings.syncUrl = (el.querySelector('#syncUrl').value||'').trim();
+      Store.d.settings.syncKey = (el.querySelector('#syncKey').value||'').trim() || 'phub';
+      Store.save();
       try{
         const r = await Sync.download(); if(!r) throw new Error('云端没有数据');
-        const lt = (Store.d.settings && Store.d.settings.gistToken) || '';
-        const lid = (Store.d.settings && Store.d.settings.gistId) || '';
+        const lu = Store.d.settings.syncUrl, lk = Store.d.settings.syncKey;
         UI.confirm('下载会覆盖本机数据，确定继续？', ()=>{
           Store.d = r;
           Store.d.settings = Store.d.settings || {};
-          Store.d.settings.gistToken = lt || Store.d.settings.gistToken;
-          Store.d.settings.gistId = lid || Store.d.settings.gistId;
+          Store.d.settings.syncUrl = lu || Store.d.settings.syncUrl;
+          Store.d.settings.syncKey = lk || Store.d.settings.syncKey;
           Store.d.settings.lastSync = new Date().toISOString();
           Store.save();
           UI.toast('已下载'); setTimeout(()=>location.reload(), 600);
@@ -387,31 +399,20 @@ const Settings = {
       }catch(err){ UI.toast('下载失败：' + (err.message||err)); }
     });
 
-    /* 🔌 连接测试：用本机 token 直连 GitHub，显示真实状态码+权限，定位是否 token/网络问题 */
+    /* 🔌 连接测试：测 Worker 代理是否可用（不直连 GitHub，绕开浏览器被拦截的问题） */
     el.querySelector('#connTest').addEventListener('click', async ()=>{
-      const raw = el.querySelector('#gistToken').value || '';
-      const tok = Sync._clean(raw);
+      const url = (el.querySelector('#syncUrl').value||'').trim();
+      const key = (el.querySelector('#syncKey').value||'').trim() || 'phub';
       const box = el.querySelector('#syncDiag');
-      if(!tok){ box.textContent='请先填写 Token 再点连接测试'; box.style.color='#e53'; return; }
-      const len = tok.length;
-      /* 遮罩显示前4+后4位，确认实际发送的是哪个token */
-      const mask = len > 8 ? (tok.slice(0,4)+'…'+tok.slice(-4)) : tok;
-      const lenHint = (raw.trim()!==tok) ? ('（⚠️ 检测到隐藏字符已被自动清洗，清洗后长度 '+len+' 位）') : ('（清洗后长度 '+len+' 位；ghp_ 应为 40、github_pat_ 约 82）');
+      if(!url){ box.textContent='请先填写「同步地址（Worker URL）」再点连接测试'; box.style.color='#e53'; return; }
       box.textContent='测试中…'; box.style.color='var(--text-2)';
       try{
-        const r = await fetch('https://api.github.com/user', { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json' } });
-        const scope = r.headers.get('X-OAuth-Scopes') || '(无)';
-        const ok = r.ok;
-        box.innerHTML = '发送的 Token: <b>'+mask+'</b> ｜ GitHub 返回 <b>'+r.status+'</b> ｜ 权限: '+scope
-          +(ok?' ｜ ✅ Token 有效，可同步'
-            :' ｜ ❌ Token 无效 — 这台电脑的浏览器环境阻止了正常请求<br>'
-            +'🔧 请按顺序尝试：<br>'
-            +'① 按 <b>F12</b> 打开开发者工具 → Network 标签 → 再点一次本按钮 → 点 user 那行 → 看 Request Headers 里 <code>Authorization</code> 是不是 <code>Bearer ghp_5ig…</b><br>'
-            +'② 试一下浏览器的「无痕/隐私模式」打开追风工作台再测<br>'
-            +'③ 关掉所有浏览器扩展（尤其是密码管理器/安全类）再试')
-          +'<br>'+lenHint;
-        box.style.color = ok ? '#2a9' : '#e53';
-      }catch(e){ box.textContent='请求失败：'+e.message+'（设备无法访问 api.github.com，或被浏览器拦截）'+' ｜ Token:'+mask+' ｜ '+lenHint; box.style.color='#e53'; }
+        const r = await fetch(url, { headers:{ 'x-phub-key': key, 'Accept':'application/json' } });
+        const t = await r.text();
+        if(r.status === 403){ box.innerHTML = '❌ 密码不对（或 Worker 未配置 PASSPHRASE）。请确认 App 里的「同步密码」与 Worker 的 PASSPHRASE 一致。'; box.style.color='#e53'; }
+        else if(r.ok){ box.innerHTML = '✅ 连接成功！Worker 正常，可点击「立即同步」。返回内容：' + (t.slice(0,60) || '(空)'); box.style.color='#2a9'; }
+        else { box.innerHTML = '⚠️ Worker 返回 ' + r.status + '：' + t.slice(0,120); box.style.color='#e53'; }
+      }catch(e){ box.textContent='请求失败：'+e.message+'（打不开这个网址，请检查 Worker 地址是否正确、是否部署成功）'; box.style.color='#e53'; }
     });
     /* ♻️ 强制刷新：清掉所有 Service Worker 缓存，重新加载到最新版代码 */
     el.querySelector('#forceReload').addEventListener('click', async ()=>{

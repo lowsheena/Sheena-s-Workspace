@@ -134,7 +134,7 @@ const Photos = {
 const DEFAULT_STATE = {
   v: 2,
   profile: { onboarded:false, name:'', gender:'female', age:20, height:165, weight:60, startWeight:60, targetWeight:52, activity:1.375, pace:'standard', goalNote:'', createdAt:'' },
-  settings: { rate: 5.25, rateUpdated:'', defaultCurrency:'SGD', monthlyBudgetCNY: 3000, waterCup: 250, termStart:'', geminiKey:'', geminiModel:'gemini-2.0-flash', gistToken:'', gistId:'', autoSync:false, lastSync:'' },
+  settings: { rate: 5.25, rateUpdated:'', defaultCurrency:'SGD', monthlyBudgetCNY: 3000, waterCup: 250, termStart:'', geminiKey:'', geminiModel:'gemini-2.0-flash', gistToken:'', gistId:'', syncUrl:'', syncKey:'phub', autoSync:false, lastSync:'' },
   expenses: [], incomes: [], meals: [], water: [], workouts: [], weights: [],
   courses: [], tasks: [], works: [], cycles: [],
   accounts: [], savings: [], projects: [],
@@ -160,7 +160,7 @@ const Store = {
   save(){
     try{ localStorage.setItem(this.KEY, JSON.stringify(this.d)); }
     catch(e){ UI.toast('存储空间不足，建议清理旧照片'); }
-    if(typeof Sync !== 'undefined' && Sync.auto && Sync.token) Sync.schedulePush();
+    if(typeof Sync !== 'undefined' && Sync.auto && Sync.url) Sync.schedulePush();
   },
   add(list, obj){ obj.id = obj.id || U.uid(); this.d[list].unshift(obj); this.save(); return obj; },
   update(list, id, patch){ const it = this.d[list].find(x=>x.id===id); if(it){ Object.assign(it, patch); this.save(); } return it; },
@@ -171,19 +171,15 @@ const Store = {
   get(list, id){ return this.d[list].find(x=>x.id===id); }
 };
 
-/* ---------------- 云同步（GitHub Gist 当私有云盘） ---------------- */
+/* ---------------- 云同步（经 Cloudflare Worker 代理读写 GitHub 私有 Gist） ----------------
+   浏览器只跟 Worker 说话（不带 GitHub 凭据），Worker 在服务器端用 token 连 GitHub。
+   这样 GitHub Token 从不出浏览器，规避"浏览器直连 GitHub 请求被改坏"的问题。 */
 const Sync = {
-  API: 'https://api.github.com/gists',
-  FILE: 'phub_state.json',
-  get token(){ return this._clean((Store.d.settings && Store.d.settings.gistToken) || ''); },
-  get gistId(){ return (Store.d.settings && Store.d.settings.gistId) || ''; },
+  get url(){ return ((Store.d.settings && Store.d.settings.syncUrl) || '').trim().replace(/\/+$/, ''); },
+  get key(){ return (Store.d.settings && Store.d.settings.syncKey) || 'phub'; },
   get auto(){ return !!(Store.d.settings && Store.d.settings.autoSync); },
   _t: null,
-  /* 彻底清洗 token：GitHub token 仅含 [A-Za-z0-9_]，剔除所有不可见/多余字符
-     （零宽空格、换行、智能引号等 .trim() 去不掉的东西，会导致 401 Bad credentials） */
-  _clean(s){ return (s||'').replace(/[^A-Za-z0-9_]/g, ''); },
-  _headers(){ return { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }; },
-  _body(content){ return { description: '追风工作台云同步', public: false, files: { [this.FILE]: { content } } }; },
+  _h(){ return { 'Content-Type': 'application/json', 'x-phub-key': this.key }; },
 
   /* 改动后防抖上传（自动同步用） */
   schedulePush(){
@@ -191,64 +187,32 @@ const Sync = {
     this._t = setTimeout(()=>{ this.upload().catch(()=>{}); }, 2500);
   },
 
-  /* 上传本机数据到云端（有 gistId 则更新，否则新建；旧 gist 绑定失效时自动清空重试） */
+  /* 上传本机数据到云端（Worker 负责找/建 Gist，本机只管 POST 全量） */
   async upload(){
-    if(!this.token) throw new Error('未配置 GitHub Token');
-    if(!this.gistId){ const f = await this.findGist(); if(f) this._setGist(f); }
+    if(!this.url) throw new Error('未配置同步地址（Worker URL）');
     const content = JSON.stringify(Store.d);
-    let res;
-    if(this.gistId){
-      res = await fetch(this.API + '/' + this.gistId, { method:'PATCH', headers:this._headers(), body: JSON.stringify(this._body(content)) });
-      if(res.status === 401 || res.status === 403 || res.status === 404){ this._clearGist(); res = null; }
+    const res = await fetch(this.url, { method:'POST', headers:this._h(), body: content });
+    if(!res.ok){
+      let t = ''; try{ t = (await res.text()).slice(0, 160); }catch(e){}
+      throw new Error('同步服务返回 ' + res.status + (t ? ('：' + t) : ''));
     }
-    if(!this.gistId){
-      res = await fetch(this.API, { method:'POST', headers:this._headers(), body: JSON.stringify(this._body(content)) });
-    }
-    if(!res || !res.ok){
-      let detail = '';
-      try { const j = await res.json(); if(j && j.message) detail = '（' + j.message + '）'; } catch(e){}
-      const len = this.token.length;
-      const hint = (res && res.status===401)
-        ? ('：请确认电脑与手机填的是【同一个】token、为 classic 且已勾选 gist、未被撤销。'
-           + '（清洗后 token 长度为 ' + len + ' 位；github_pat_ 开头约 82 位、ghp_ 开头应为 40 位。若长度不对，说明复制时混入了隐藏字符，建议【手动重新输入】而非粘贴）')
-        : (res && res.status===403 ? '（频率限制，稍后再试）' : '');
-      throw new Error('GitHub 返回 ' + (res ? res.status : '?') + detail + hint);
-    }
-    const data = await res.json();
-    if(data && data.id) this._setGist(data.id);
-    return data;
+    return true;
   },
 
-  /* 从云端拉取数据 */
+  /* 从云端拉取数据（返回解析后的对象，或 null 表示云端为空） */
   async download(){
-    if(!this.token) throw new Error('未配置 GitHub Token');
-    if(!this.gistId) throw new Error('尚未创建同步档案，请先上传一次');
-    const res = await fetch(this.API + '/' + this.gistId, { headers:this._headers() });
-    if(!res.ok) throw new Error('GitHub 返回 ' + res.status);
-    const data = await res.json();
-    const f = data.files && data.files[this.FILE];
-    if(!f || !f.content) return null;
-    return JSON.parse(f.content);
-  },
-
-  /* 查找同 token 下已有的同步 Gist（按文件名识别），实现多设备复用同一个云盘 */
-  async findGist(){
-    if(!this.token) return null;
-    try{
-      const res = await fetch(this.API + '?per_page=100', { headers:this._headers() });
-      if(!res.ok) return null;
-      const list = await res.json();
-      const hit = (list||[]).find(g => g.files && g.files[this.FILE]);
-      return hit ? hit.id : null;
-    }catch(e){ return null; }
+    if(!this.url) throw new Error('未配置同步地址（Worker URL）');
+    const res = await fetch(this.url, { headers:this._h() });
+    if(!res.ok) throw new Error('同步服务返回 ' + res.status);
+    const txt = await res.text();
+    if(!txt || txt === '{}') return null;
+    return JSON.parse(txt);
   },
 
   /* 合并同步：拉云端 + 本机合并（按 id 去重，取较新），再上传合并结果 */
   async sync(){
-    const found = await this.findGist();
-    if(found) this._setGist(found); else this._clearGist();
     let remote = null;
-    try { remote = await this.download(); } catch(e){ /* 可能没有档案，稍后上传新建 */ }
+    try { remote = await this.download(); } catch(e){ remote = null; }
     if(!remote){ await this.upload(); return { action:'uploaded' }; }
     const merged = this.merge(Store.d, remote);
     Store.d = merged;
@@ -256,9 +220,6 @@ const Sync = {
     await this.upload();
     return { action:'merged' };
   },
-
-  _setGist(id){ Store.d.settings.gistId = id; Store.save(); },
-  _clearGist(){ Store.d.settings.gistId = ''; Store.save(); },
 
   /* 合并两份状态：数组按 id 并集（较新优先），对象浅合并（云端补缺、本机优先），保护同步凭据 */
   merge(local, remote){
@@ -272,8 +233,8 @@ const Sync = {
       }
     }
     out.settings = out.settings || {};
-    out.settings.gistToken = (local.settings && local.settings.gistToken) || out.settings.gistToken;
-    out.settings.gistId = (local.settings && local.settings.gistId) || out.settings.gistId;
+    out.settings.syncUrl = (local.settings && local.settings.syncUrl) || out.settings.syncUrl;
+    out.settings.syncKey = (local.settings && local.settings.syncKey) || out.settings.syncKey;
     return out;
   },
   unionById(a, b){
