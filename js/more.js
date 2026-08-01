@@ -252,11 +252,16 @@ const Settings = {
             ⚠️ Token 只存在你本机浏览器，可随时到 GitHub 撤销。
           </div>
         </details>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <button class="btn btn-primary btn-sm" id="syncNow">🔄 立即同步</button>
           <button class="btn btn-ghost btn-sm" id="syncUp">⬆️ 仅上传</button>
           <button class="btn btn-ghost btn-sm" id="syncDown">⬇️ 仅下载</button>
         </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <button class="btn btn-ghost btn-sm" id="connTest">🔌 连接测试</button>
+          <button class="btn btn-ghost btn-sm" id="forceReload">♻️ 强制刷新到最新版</button>
+        </div>
+        <div id="syncDiag" style="font-size:12px;color:var(--text-2);min-height:16px;margin-top:6px">正在读取当前版本…</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2)">
           <input type="checkbox" id="autoSync" ${s.autoSync?'checked':''}> 自动同步（每次改动自动上传，进 App 时自动拉取）
         </label>
@@ -381,6 +386,30 @@ const Settings = {
         }, true);
       }catch(err){ UI.toast('下载失败：' + (err.message||err)); }
     });
+
+    /* 🔌 连接测试：用本机 token 直连 GitHub，显示真实状态码+权限，定位是否 token/网络问题 */
+    el.querySelector('#connTest').addEventListener('click', async ()=>{
+      const tok = Sync._clean(el.querySelector('#gistToken').value || '');
+      const box = el.querySelector('#syncDiag');
+      if(!tok){ box.textContent='请先填写 Token 再点连接测试'; box.style.color='#e53'; return; }
+      box.textContent='测试中…'; box.style.color='var(--text-2)';
+      try{
+        const r = await fetch('https://api.github.com/user', { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json' } });
+        const scope = r.headers.get('X-OAuth-Scopes') || '(无)';
+        const ok = r.ok;
+        box.innerHTML = 'GitHub 返回 <b>'+r.status+'</b> ｜ 权限: '+scope+(ok?' ｜ ✅ Token 有效，可同步':' ｜ ❌ Token 无效（撤销/过期/非 gist 权限）');
+        box.style.color = ok ? '#2a9' : '#e53';
+      }catch(e){ box.textContent='请求失败：'+e.message+'（设备无法访问 api.github.com，或被浏览器拦截）'; box.style.color='#e53'; }
+    });
+    /* ♻️ 强制刷新：清掉所有 Service Worker 缓存，重新加载到最新版代码 */
+    el.querySelector('#forceReload').addEventListener('click', async ()=>{
+      try{ const ks = await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){}
+      location.reload(true);
+    });
+
+    /* 显示本机实际在跑的版本（从 SW 缓存名读取，避免和线上版本对不上） */
+    (async()=>{ try{ const ks = await caches.keys(); const v = (ks.find(k=>k.indexOf('phub-v')===0)) || '未知'; const box = el.querySelector('#syncDiag'); if(box && /版本|测试|失败|有效|无效/.test(box.textContent)===false) box.textContent = '当前运行版本：'+v; }catch(e){} })();
+
     refreshStat();
     el.querySelector('#reset').addEventListener('click', ()=>{
       UI.confirm('将删除所有记录且无法恢复，建议先导出备份。确定清空？', ()=>{
