@@ -1,12 +1,12 @@
 /* 离线缓存：装到手机主屏后没网也能打开
    策略：网络优先（network-first），离线/失败时才用缓存。
    这样每次部署更新后，用户刷新即可拿到最新代码。 */
-const CACHE = 'phub-v13';
+const CACHE = 'phub-v14';
 const ASSETS = [
   './', './index.html', './manifest.json',
-  './css/style.css?v=13',
-  './js/core.js?v=13', './js/charts.js?v=13', './js/dashboard.js?v=13', './js/finance.js?v=13',
-  './js/health.js?v=13', './js/study.js?v=13', './js/work.js?v=13', './js/more.js?v=13', './js/app.js?v=13',
+  './css/style.css?v=14',
+  './js/core.js?v=14', './js/charts.js?v=14', './js/dashboard.js?v=14', './js/finance.js?v=14',
+  './js/health.js?v=14', './js/study.js?v=14', './js/work.js?v=14', './js/more.js?v=14', './js/app.js?v=14',
   './js/ocr/tesseract.min.js', './js/ocr/worker.min.js', './js/ocr/tesseract-core-lstm.wasm.js', './js/ocr/tesseract-core-lstm.wasm', './js/ocr/chi_sim.traineddata',
   './icons/icon-192.png', './icons/icon-512.png'
 ];

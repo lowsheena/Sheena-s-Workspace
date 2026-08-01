@@ -191,6 +191,7 @@ const Sync = {
   /* 上传本机数据到云端（有 gistId 则更新，否则新建） */
   async upload(){
     if(!this.token) throw new Error('未配置 GitHub Token');
+    if(!this.gistId){ const f = await this.findGist(); if(f) this._setGist(f); }
     const content = JSON.stringify(Store.d);
     let res;
     if(this.gistId){
@@ -216,8 +217,22 @@ const Sync = {
     return JSON.parse(f.content);
   },
 
+  /* 查找同 token 下已有的同步 Gist（按文件名识别），实现多设备复用同一个云盘 */
+  async findGist(){
+    if(!this.token) return null;
+    try{
+      const res = await fetch(this.API + '?per_page=100', { headers:this._headers() });
+      if(!res.ok) return null;
+      const list = await res.json();
+      const hit = (list||[]).find(g => g.files && g.files[this.FILE]);
+      return hit ? hit.id : null;
+    }catch(e){ return null; }
+  },
+
   /* 合并同步：拉云端 + 本机合并（按 id 去重，取较新），再上传合并结果 */
   async sync(){
+    const found = await this.findGist();
+    if(found) this._setGist(found);
     let remote = null;
     try { remote = await this.download(); } catch(e){ /* 可能没有档案，稍后上传新建 */ }
     if(!remote){ await this.upload(); return { action:'uploaded' }; }
