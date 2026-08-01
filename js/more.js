@@ -389,17 +389,20 @@ const Settings = {
 
     /* 🔌 连接测试：用本机 token 直连 GitHub，显示真实状态码+权限，定位是否 token/网络问题 */
     el.querySelector('#connTest').addEventListener('click', async ()=>{
-      const tok = Sync._clean(el.querySelector('#gistToken').value || '');
+      const raw = el.querySelector('#gistToken').value || '';
+      const tok = Sync._clean(raw);
       const box = el.querySelector('#syncDiag');
       if(!tok){ box.textContent='请先填写 Token 再点连接测试'; box.style.color='#e53'; return; }
+      const len = tok.length;
+      const lenHint = (raw.trim()!==tok) ? ('（⚠️ 检测到隐藏字符已被自动清洗，清洗后长度 '+len+' 位）') : ('（清洗后长度 '+len+' 位；ghp_ 应为 40、github_pat_ 约 82）');
       box.textContent='测试中…'; box.style.color='var(--text-2)';
       try{
         const r = await fetch('https://api.github.com/user', { headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json' } });
         const scope = r.headers.get('X-OAuth-Scopes') || '(无)';
         const ok = r.ok;
-        box.innerHTML = 'GitHub 返回 <b>'+r.status+'</b> ｜ 权限: '+scope+(ok?' ｜ ✅ Token 有效，可同步':' ｜ ❌ Token 无效（撤销/过期/非 gist 权限）');
+        box.innerHTML = 'GitHub 返回 <b>'+r.status+'</b> ｜ 权限: '+scope+(ok?' ｜ ✅ Token 有效，可同步':' ｜ ❌ Token 无效（不是这个新 token：请先清空输入框、再重新填入）')+'<br>'+lenHint;
         box.style.color = ok ? '#2a9' : '#e53';
-      }catch(e){ box.textContent='请求失败：'+e.message+'（设备无法访问 api.github.com，或被浏览器拦截）'; box.style.color='#e53'; }
+      }catch(e){ box.textContent='请求失败：'+e.message+'（设备无法访问 api.github.com，或被浏览器拦截）'+' ｜ '+lenHint; box.style.color='#e53'; }
     });
     /* ♻️ 强制刷新：清掉所有 Service Worker 缓存，重新加载到最新版代码 */
     el.querySelector('#forceReload').addEventListener('click', async ()=>{
