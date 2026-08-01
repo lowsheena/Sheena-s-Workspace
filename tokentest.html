@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token 隔离测试</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;line-height:1.7}
+  input{width:100%;padding:10px;font-size:15px;margin:8px 0;box-sizing:border-box}
+  button{padding:10px 18px;font-size:15px;cursor:pointer;margin-top:8px}
+  pre{background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-all;font-size:13px}
+  .ok{color:#2a9}.bad{color:#e53}
+</style>
+</head>
+<body>
+<h2>🔌 Token 隔离测试（独立于追风工作台）</h2>
+<p>这个页面不读任何缓存、不依赖 PWA。它只做一件事：用你填的 token 直连 <code>GET /user</code>。</p>
+<p>如果这页也显示 401，说明是你电脑<b>网络/浏览器发请求</b>的问题，不是代码问题。</p>
+<input id="tok" type="text" placeholder="粘贴或输入你的 token（ghp_...）">
+<button onclick="test()">发请求测试</button>
+<pre id="out">（结果会显示在这里）</pre>
+<script>
+function clean(s){return (s||'').replace(/[^A-Za-z0-9_]/g,'');}
+async function test(){
+  const raw = document.getElementById('tok').value || '';
+  const tok = clean(raw);
+  const out = document.getElementById('out');
+  if(!tok){ out.textContent='请先填写 token'; out.className='bad'; return; }
+  const mask = tok.length>8 ? (tok.slice(0,4)+'…'+tok.slice(-4)) : tok;
+  out.textContent='发送的 token（遮罩）: '+mask+'  长度: '+tok.length+' 位\n测试中…';
+  out.className='';
+  try{
+    const r = await fetch('https://api.github.com/user', {
+      headers:{ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json' }
+    });
+    const scope = r.headers.get('X-OAuth-Scopes') || '(无)';
+    let body='';
+    try{ const j = await r.json(); body = JSON.stringify(j).slice(0,200); }catch(e){}
+    out.innerHTML = '发送的 token（遮罩）: <b>'+mask+'</b>  长度: '+tok.length+' 位\n'
+      + 'HTTP 状态: <b>'+r.status+'</b>\n'
+      + '权限 X-OAuth-Scopes: '+scope+'\n'
+      + 'GitHub 返回: '+body+'\n'
+      + (r.ok ? '✅ 这台电脑的浏览器能成功发请求，token 有效！' : '❌ 这台电脑的浏览器发请求被拒（网络/代理/系统拦截）');
+    out.className = r.ok ? 'ok' : 'bad';
+  }catch(e){
+    out.textContent = '发送的 token（遮罩）: '+mask+'  长度: '+tok.length+' 位\n请求失败: '+e.message+'\n（这台电脑无法直连 api.github.com，可能被代理/防火墙拦截）';
+    out.className='bad';
+  }
+}
+</script>
+</body>
+</html>
